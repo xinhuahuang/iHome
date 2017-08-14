@@ -1,6 +1,7 @@
 # coding=utf-8
 
 from CCPRestSDK import REST
+from tornado.ioloop import IOLoop
 
 
 # 主帐号
@@ -45,6 +46,8 @@ class CCP(object):
 
         # 通过调用云通讯SDK对象的方法发送短信
         result = self.rest.sendTemplateSMS(to, datas, temp_id)
+        #result = IOLoop.current().spawn_callback(self.rest.sendTemplateSMS(to, datas, temp_id))
+
 
         if result.get("statusCode") != "000000":
             # 表示云通讯发送短信失败

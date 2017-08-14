@@ -3,6 +3,7 @@ import json
 import tornado.web
 
 from tornado.web import RequestHandler
+from utils.session import Session
 
 
 class BaseHandler(RequestHandler):
@@ -10,7 +11,7 @@ class BaseHandler(RequestHandler):
     def prepare(self):
         """预处理方法，主要实现对于前端发送过来json数据的解析操作"""
         # 如果发送过来的数据是json格式，才进行解析
-        if self.request.headers.get("Content-Type", "").startswith("Applications/json"):
+        if self.request.headers.get("Content-Type", "").startswith("application/json"):
             req_json_data = self.request.body
             self.json_args = json.loads(req_json_data)
         else:
@@ -29,6 +30,11 @@ class BaseHandler(RequestHandler):
     def redis(self):
         """将self.application.redis的使用方式简化为直接操作属性redis，即self.redis"""
         return self.application.redis
+
+    def get_current_user(self):
+        """通过session判断用户的登录状态"""
+        self.session = Session(self)
+        return self.session.data
 
 
 class StaticFileHandler(tornado.web.StaticFileHandler):

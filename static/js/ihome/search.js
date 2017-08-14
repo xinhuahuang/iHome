@@ -1,4 +1,9 @@
+var cur_page = 1; // 当前页
+var next_page = 1; // 下一页
+var total_page = 1;  // 总页数
+var house_data_querying = true;   // 是否正在向后台获取数据
 
+// 解析url中的查询字符串
 function decodeQuery(){
     var search = decodeURI(document.location.search);
     return search.replace(/(^\?)/, '').split('&').reduce(function(result, item){
@@ -8,6 +13,7 @@ function decodeQuery(){
     }, {});
 }
 
+// 更新用户点选的筛选条件
 function updateFilterDateDisplay() {
     var startDate = $("#start-date").val();
     var endDate = $("#end-date").val();
@@ -18,6 +24,46 @@ function updateFilterDateDisplay() {
     } else {
         $filterDateTitle.html("入住日期");
     }
+}
+
+
+// 更新房源列表信息
+// action表示从后端请求的数据在前端的展示方式
+function updateHouseData(action) {
+    var areaId = $(".filter-area>li.active").attr("area-id");
+    if (undefined == areaId)
+    {
+        var queryData = decodeQuery();
+        areaId = queryData["aid"];
+    }
+    if(undefined == areaId) areaId="";
+    var startDate = $("#start-date").val();
+    var endDate = $("#end-date").val();
+    var sortKey = $(".filter-sort>li.active").attr("sort-key");
+    var params = {
+        aid:areaId,
+        sd:startDate,
+        ed:endDate,
+        sk:sortKey,
+        p:next_page
+    };
+    $.get("/api/v1.0/houses", params, function(e){
+        house_data_querying = false;
+        if ("0" == e.errno) {
+            if ("-1" == e.total_page_index) {
+                $(".house-list").html("暂时没有符合您查询的房屋信息。");
+            } else {
+                total_page = e.total_page_index;
+                if ("renew" == action) {
+                    cur_page = 1;
+                    $(".house-list").html(template("house-list-tmpl", {houses:e.houses}));
+                } else {
+                    cur_page = next_page;
+                    $(".house-list").append(template("house-list-tmpl", {houses: e.houses}));
+                }
+            }
+        }
+    })
 }
 
 
@@ -32,6 +78,32 @@ $(document).ready(function(){
     if (!areaName) areaName = "位置区域";
     $(".filter-title-bar>.filter-title").eq(1).children("span").eq(0).html(areaName);
 
+    // 获取筛选条件中的城市区域信息
+    $.get("/api/v1.0/areas", function (e) {
+        if ("0" == e.errno) {
+            if (e.data) {
+                $(".filter-area").html(template('filter-area-tmpl', {area_list: e.data}));
+            }
+
+
+        updateHouseData("renew");
+        var windowHeight = $(window).height()
+        window.onscroll = function () {
+            // var a = document.documentElement.scrollTop==0? document.body.clientHeight : document.documentElement.clientHeight;
+            var b = document.documentElement.scrollTop == 0 ? document.body.scrollTop : document.documentElement.scrollTop;
+            var c = document.documentElement.scrollTop == 0 ? document.body.scrollHeight : document.documentElement.scrollHeight;
+            if (c - b < windowHeight + 50) {
+                if (!house_data_querying) {
+                    house_data_querying = true;
+                    if (cur_page < total_page) {
+                        next_page = cur_page + 1;
+                        updateHouseData();
+                        }
+                    }
+                }
+            }
+        }
+    });
 
     $(".input-daterange").datepicker({
         format: "yyyy-mm-dd",
@@ -58,6 +130,10 @@ $(document).ready(function(){
         $(this).hide();
         $filterItem.removeClass('active');
         updateFilterDateDisplay();
+        cur_page = 1;
+        next_page = 1;
+        total_page = 1;
+        updateHouseData("renew");
 
     });
     $(".filter-item-bar>.filter-area").on("click", "li", function(e) {

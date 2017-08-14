@@ -12,8 +12,8 @@ $(document).ready(function() {
     });
     $(".form-login").submit(function(e){
         e.preventDefault();
-        mobile = $("#mobile").val();
-        passwd = $("#password").val();
+        var mobile = $("#mobile").val();
+        var passwd = $("#password").val();
         if (!mobile) {
             $("#mobile-err span").html("请填写正确的手机号！");
             $("#mobile-err").show();
@@ -24,5 +24,34 @@ $(document).ready(function() {
             $("#password-err").show();
             return;
         }
+
+        req = {
+            "mobile":mobile,
+            "password":passwd
+        };
+
+        $.ajax({
+            url: "/api/v1.0/session",
+            type: "PUT",
+            contentType: "application/json",
+            data:JSON.stringify(req),
+            headers:{
+                "X-XSRFToken": getCookie("_xsrf")
+            },
+            dataType: "json",
+            success: function(resp){
+                if (resp.errno == "0"){
+                    location.href = "/index.html"
+                }
+                else if ("4103" == resp.errno || "4104" == resp.errno){
+                    $("#mobile-err span").html(resp.errmsg);
+                    $("#mobile-err").show();
+                }
+                else{
+                    $("#password2-err span").html(resp.errmsg);
+                    $("#password2-err").show();
+                }
+            }
+        });
     });
 })

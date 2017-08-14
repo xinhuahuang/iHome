@@ -84,12 +84,31 @@ class SMSCodeHandler(BaseHandler):
             # 将错误信息写入日志，并通过json将错误信息返回
             logging.error(e)
 
+        # 检查用户是否已注册
+        sql = "select count(*) as counts from ih_user_profile where up_mobile = %(mobile)s"
+        try:
+            count = self.db.get(sql, mobile=mobile)
+        except Exception as e:
+            logging.error(e)
+            resp_data = {
+                "errno": RET.DBERR,
+                "errmsg":"查询数据失败"
+            }
+            return self.write(resp_data)
+
+        if count["counts"] > 0:
+            resp_data = {
+                "errno": RET.DATAEXIST,
+                "errmsg": "用户已存在"
+            }
+            return self.write(resp_data)
+
         # 生成6位的短信验证码
         sms_code = "%6d" %(random.randint(0, 999999))
 
         # 将生成的短信验证码写入redis数据库
         try:
-            self.redis.setex("sms_code_%s" %image_code_id, constants.SMS_CODE_REDIS_EXPIRES, sms_code)
+            self.redis.setex("sms_code_%s" %mobile, constants.SMS_CODE_REDIS_EXPIRES, sms_code)
         except Exception as e:
             # 将错误信息写入日志，并通过json将错误信息返回
             logging.error(e)

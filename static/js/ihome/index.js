@@ -58,6 +58,22 @@ function goToSearchPage(th) {
 }
 
 $(document).ready(function(){
+    // 显示城区信息
+    $.get("/api/v1.0/areas", function (rep) {
+        if (rep.errno == "0"){
+            // 第一种方法
+            // for(var i=0; i<rep.data.length; i++){
+            //     var area_id = rep.data[i].ai_area_id;
+            //     var ai_name = rep.data[i].ai_name;
+            //     $(".modal-body .area-list").append('<a href="#" area-id="'+ area_id + '">'+ ai_name +'</a>');
+            // }
+
+            // 第二种方法
+            $(".modal-body .area-list").html(template("area-list-tmpl", {areas_list: rep.data}));
+
+        }
+    });
+
     $(".top-bar>.register-login").show();
     var mySwiper = new Swiper ('.swiper-container', {
         loop: true,
@@ -65,13 +81,16 @@ $(document).ready(function(){
         autoplayDisableOnInteraction: false,
         pagination: '.swiper-pagination',
         paginationClickable: true
-    }); 
-    $(".area-list a").click(function(e){
+    });
+
+    // 城区选中效果
+    $(".area-list").on("click", "a", function(){
         $("#area-btn").html($(this).html());
         $(".search-btn").attr("area-id", $(this).attr("area-id"));
         $(".search-btn").attr("area-name", $(this).html());
         $("#area-modal").modal("hide");
     });
+
     $('.modal').on('show.bs.modal', centerModals);      //当模态框出现的时候
     $(window).on('resize', centerModals);               //当窗口大小变化的时候
     $("#start-date").datepicker({
@@ -84,4 +103,28 @@ $(document).ready(function(){
         var date = $(this).datepicker("getFormattedDate");
         $("#start-date-input").val(date);
     });
+
+    // 判断用户是否已登录
+    $.get("/api/v1.0/session", function(rep){
+        if(rep.errno == "0"){
+            $(".top-bar>.register-login").hide();
+            $(".top-bar>.user-info>a").html(rep.data);
+            $(".top-bar>.user-info").show();
+        }
+    });
+
+    // 获取首页的信息
+    $.get("/api/v1.0/houses/index", function (rep) {
+        if(rep.errno == "0"){
+            $(".swiper-wrapper").html(template('index-warpper', {houses: rep.houses}));
+        }
+
+        var mySwiper = new Swiper ('.swiper-container', {
+            loop: true,
+            autoplay: 2000,
+            autoplayDisableOnInteraction: false,
+            pagination: '.swiper-pagination',
+            paginationClickable: true
+        });
+    })
 })

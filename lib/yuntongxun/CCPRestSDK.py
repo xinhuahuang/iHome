@@ -16,7 +16,9 @@ import datetime
 import urllib2
 import json
 from xmltojson import xmltojson
-from xml.dom import minidom 
+from xml.dom import minidom
+from tornado import gen
+from tornado.httpclient import AsyncHTTPClient
 
 class REST:
     
@@ -193,6 +195,7 @@ class REST:
         #生成auth
         src = self.AccountSid + ":" + self.Batch;
         auth = base64.encodestring(src).strip()
+
         req = urllib2.Request(url)
         self.setHttpHeader(req)
         
@@ -232,6 +235,7 @@ class REST:
     # @param to  必选参数     短信接收彿手机号码集合,用英文逗号分开
     # @param datas 可选参数    内容数据
     # @param tempId 必选参数    模板Id
+    #@gen.coroutine
     def sendTemplateSMS(self, to,datas,tempId):
 
         self.accAuth()
@@ -245,6 +249,10 @@ class REST:
         #生成auth
         src = self.AccountSid + ":" + self.Batch;
         auth = base64.encodestring(src).strip()
+
+        #http_client = AsyncHTTPClient()
+        #req = yield http_client.fetch(url)
+
         req = urllib2.Request(url)
         self.setHttpHeader(req)
         req.add_header("Authorization", auth)
@@ -280,10 +288,12 @@ class REST:
             if self.Iflog:
                 self.log(url,body,data)
             return locations
+            #yield locations
         except Exception, error:
             if self.Iflog:
                 self.log(url,body,data)
             return {'172001':'网络错误'}
+            #yield {'172001':'网络错误'}
 
         
     # 外呼通知
